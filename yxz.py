@@ -6,11 +6,10 @@ from random import choice
 from locust import events, FastHttpUser, TaskSet, SequentialTaskSet, task, between, tag
 import json, requests
 
-proxies = {'http': 'http://localhost:8888', 'https': 'http://localhost:8888'}
+# proxies = {'http': 'http://localhost:8888', 'https': 'http://localhost:8888'}
 requests.packages.urllib3.disable_warnings()
 
 
-#
 # def number_to_chinese(number):
 #     return cn2an.transform(number, "an2cn")
 
@@ -27,9 +26,10 @@ def mock_yxzuser(phone):
     return json.loads(res.text)["data"]["userId"]
 
 
-def mocksession(userid, site):
+def mocksession(userid, site=14):
     url = 'https://test-internal.gezhijiankang.com/zeus/user/test/session/add?site={}&userId={}'.format(site, userid)
     res = requests.get(url)
+    print(json.loads(res.text)['data'])
     return json.loads(res.text)['data']
 
 
@@ -41,7 +41,9 @@ def read_yxz():
     r = requests.post(url, data=post_data, verify=False)
     token = r.json()["tenant_access_token"]
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
-    res = requests.get('https://open.feishu.cn/open-apis/bitable/v1/apps/MBYtbtyqNaQG6ssLbHtcCM96npd/tables/tblIOU6HYIZ1WGIe/records', headers=headers, verify=False)
+    res = requests.get(
+        'https://open.feishu.cn/open-apis/bitable/v1/apps/MBYtbtyqNaQG6ssLbHtcCM96npd/tables/tblIOU6HYIZ1WGIe/records',
+        headers=headers, verify=False)
     yxz_baseinfo_list = json.loads(res.text)['data']['items']
     return yxz_baseinfo_list
 
@@ -49,14 +51,15 @@ def read_yxz():
 def write_yxz(fields, record_id):
     app_id, app_secret = 'cli_a4829baf2cbc500b', 'KA3JvaL059HjRChCM4q4ObduAyUjOm0e'
     url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
-    post_data = {"app_id": app_id,
-                 "app_secret": app_secret}
+    post_data = {"app_id": app_id, "app_secret": app_secret}
     r = requests.post(url, data=post_data)
     token = r.json()["tenant_access_token"]
     headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
     res = requests.put(
-        'https://open.feishu.cn/open-apis/bitable/v1/apps/MBYtbtyqNaQG6ssLbHtcCM96npd/tables/tblIOU6HYIZ1WGIe/records/{}'.format(record_id),
+        'https://open.feishu.cn/open-apis/bitable/v1/apps/MBYtbtyqNaQG6ssLbHtcCM96npd/tables/tblIOU6HYIZ1WGIe/records/{}'.format(
+            record_id),
         json={'fields': fields}, headers=headers)
+    print(res.text)
     return res.text
 
 
@@ -94,85 +97,122 @@ class YHomePage(TaskSet):
     @tag('1,获取当前登录用户信息')
     @task
     def userInfo_test(self):
-        with self.client.get(self.host + 'gateway/yxz-service/auth/userInfo', headers=self.headers, verify=False) as response:
+        with self.client.get(self.host + 'gateway/yxz-service/auth/userInfo', headers=self.headers,
+                             verify=False) as response:
             # print(response.content)  # 调试加入这一行
             try:
                 if response.status_code != 200:
-                    print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                             response.headers['eagleeye-traceid'],
+                                                                             self.session))
             except:
-                print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                         response.headers['eagleeye-traceid'],
+                                                                         self.session))
 
     @tag('新建发起人')
     @task
     def user_create(self):
         data = {"phone": f'{self.phone}'}
         # print(data, self.headers,self.session)
-        with self.client.post(self.host + 'gateway/yxz-admin/user/create', json=data, headers=self.headers, verify=False) as response:
+        with self.client.post(self.host + 'gateway/yxz-admin/user/create', json=data, headers=self.headers,
+                              verify=False) as response:
             print(response.content.decode('utf-8'))
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
     @tag('药品评价方案')
     @task
     def newu_test(self):
         # data = {"phone": f'{self.phone}'}
         # print(data, self.headers,self.session)
-        with self.client.get(self.host + 'gateway/yxz-admin/evaluation/list?p=1&pageSize=20', headers=self.headers, verify=False) as response:
+        with self.client.get(self.host + 'gateway/yxz-admin/evaluation/list?p=1&pageSize=20', headers=self.headers,
+                             verify=False) as response:
             # print(response.content.decode('utf-8'))
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
     @tag('联系人库')
     @task
     def relatedUser_list(self):
-        with self.client.get(self.host + 'gateway/yxz-service/relatedUser/list?p=1&pageSize=50', headers=self.headers, verify=False) as response:
+        with self.client.get(self.host + 'gateway/yxz-service/relatedUser/list?p=1&pageSize=50', headers=self.headers,
+                             verify=False) as response:
             # print(response.content)  # 调试加入这一行
             try:
                 if response.status_code != 200:
-                    print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                             response.headers['eagleeye-traceid'],
+                                                                             self.session))
             except:
-                print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                         response.headers['eagleeye-traceid'],
+                                                                         self.session))
 
     @tag('药品库A')
     @task
     def medicine_list(self):
-        with self.client.get(self.host + 'gateway/yxz-service/medicine/list?p=1&pageSize=50', headers=self.headers, verify=False) as response:
+        with self.client.get(self.host + 'gateway/yxz-service/medicine/list?p=1&pageSize=50', headers=self.headers,
+                             verify=False) as response:
             # print(response.content)  # 调试加入这一行
             try:
                 if response.status_code != 200:
-                    print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                             response.headers['eagleeye-traceid'],
+                                                                             self.session))
             except:
-                print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                         response.headers['eagleeye-traceid'],
+                                                                         self.session))
             m = response.content['data']['records'][0][id]
             print(m)
 
     @tag('我创建的评分方案列表')
     @task
     def evaluation_list(self):
-        with self.client.get(self.host + 'gateway/yxz-service/evaluation/list?p=1&pageSize=50', headers=self.headers, verify=False) as response:
+        with self.client.get(self.host + 'gateway/yxz-service/evaluation/list?p=1&pageSize=50', headers=self.headers,
+                             verify=False) as response:
             # print(response.content.decode('utf-8'))  # 调试加入这一行
             try:
                 if response.status_code != 200:
-                    print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                             response.headers['eagleeye-traceid'],
+                                                                             self.session))
             except:
-                print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                         response.headers['eagleeye-traceid'],
+                                                                         self.session))
 
     @tag('我参与的评分方案列表')
     @task
     def participating_test(self):
-        with self.client.get(self.host + 'gateway/yxz-service/evaluation/participatingList?p=1&pageSize=50', headers=self.headers, verify=False) as response:
+        with self.client.get(self.host + 'gateway/yxz-service/evaluation/participatingList?p=1&pageSize=50',
+                             headers=self.headers, verify=False) as response:
             # print(response.content.decode('utf-8'))  # 调试加入这一行
             try:
                 if response.status_code != 200:
-                    print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                             response.headers['eagleeye-traceid'],
+                                                                             self.session))
             except:
-                print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                         response.headers['eagleeye-traceid'],
+                                                                         self.session))
 
     @tag('新建模板方案')
     @task
@@ -180,13 +220,19 @@ class YHomePage(TaskSet):
 
         data = {"name": f"方案名称{self.phone}", "medicineIdList": [str(self.medcineid)]}
         # print(data)
-        with self.client.post(self.host + 'gateway/yxz-service/evaluation/create', json=data, headers=self.headers, verify=False) as response:
+        with self.client.post(self.host + 'gateway/yxz-service/evaluation/create', json=data, headers=self.headers,
+                              verify=False) as response:
             # print(response.content)
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
     @tag('提交评分方案')
     @task
@@ -1498,107 +1544,159 @@ class YHomePage(TaskSet):
         }
         # print(data)
 
-        with self.client.post(self.host + 'gateway/yxz-service/template/save', json=data, headers=self.headers, verify=False) as response:
+        with self.client.post(self.host + 'gateway/yxz-service/template/save', json=data, headers=self.headers,
+                              verify=False) as response:
             print(response.content)
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
     @tag("输入手机号码分享")
     @task
     def add_test(self):
-        data = {"evaluationId": f"{self.templateid}", "phoneList": ["13917891535", "16600000001", '16600000002', '16600000003']}
-        with self.client.post(self.host + 'gateway/yxz-service/evaluationParticipant/add', json=data, headers=self.headers, verify=False) as response:
+        data = {"evaluationId": f"{self.templateid}",
+                "phoneList": ["13917891535", "16600000001", '16600000002', '16600000003']}
+        with self.client.post(self.host + 'gateway/yxz-service/evaluationParticipant/add', json=data,
+                              headers=self.headers, verify=False) as response:
             print(response.content.decode('utf-8'))
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
     @tag("已邀请的成员")
     @task
     def evaluationId_user(self):
-        with self.client.get(self.host + f'gateway/yxz-service/evaluationParticipant/list?evaluationId={self.templateid}', headers=self.headers, verify=False) as response:
+        with self.client.get(
+                self.host + f'gateway/yxz-service/evaluationParticipant/list?evaluationId={self.templateid}',
+                headers=self.headers, verify=False) as response:
             print(response.content.decode('utf-8'))
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
     @tag("开启评分")
     @task
     def start_test(self):
         data = {"id": f"{self.templateid}"}
         # print(data)
-        with self.client.post(self.host + 'gateway/yxz-service/evaluation/start', json=data, headers=self.headers, verify=False) as response:
+        with self.client.post(self.host + 'gateway/yxz-service/evaluation/start', json=data, headers=self.headers,
+                              verify=False) as response:
             # print(response.content.decode('utf-8'))
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
     @tag('去评分')
     @task
     def pingf_test(self):
-        data = {"id": f"{self.templateid}", "list": [{"medicineId": "28", "categoryId": "291", "questionId": "558", "optionId": "558", "score": 9.9},
-                                                     {"medicineId": "51", "categoryId": "291", "questionId": "558", "optionId": "558", "score": 0},
-                                                     {"medicineId": "28", "categoryId": "292", "questionId": "559", "optionId": "1558", "score": 6},
-                                                     {"medicineId": "51", "categoryId": "292", "questionId": "559", "optionId": "1559", "score": 5},
-                                                     {"medicineId": "28", "categoryId": "290", "questionId": "557", "optionId": "1556", "score": 9},
-                                                     {"medicineId": "51", "categoryId": "290", "questionId": "557", "optionId": "1555", "score": 10}], "remarkList": [
-            {"id": "232", "userId": "1665609343213477908", "evaluationId": "89", "categoryId": "291", "questionId": "558", "remark": "9.9\n0", "createTime": 1695711722000,
-             "updateTime": 1695711722000},
-            {"id": "233", "userId": "1665609343213477908", "evaluationId": "89", "categoryId": "292", "questionId": "559", "remark": "6\n5", "createTime": 1695711722000, "updateTime": 1695711722000},
-            {"id": "234", "userId": "1665609343213477908", "evaluationId": "89", "categoryId": "290", "questionId": "557", "remark": "9\n10", "createTime": 1695711722000,
-             "updateTime": 1695711722000}], "summary": "全部写完了"}
+        data = {"id": f"{self.templateid}", "list": [
+            {"medicineId": "28", "categoryId": "291", "questionId": "558", "optionId": "558", "score": 9.9},
+            {"medicineId": "51", "categoryId": "291", "questionId": "558", "optionId": "558", "score": 0},
+            {"medicineId": "28", "categoryId": "292", "questionId": "559", "optionId": "1558", "score": 6},
+            {"medicineId": "51", "categoryId": "292", "questionId": "559", "optionId": "1559", "score": 5},
+            {"medicineId": "28", "categoryId": "290", "questionId": "557", "optionId": "1556", "score": 9},
+            {"medicineId": "51", "categoryId": "290", "questionId": "557", "optionId": "1555", "score": 10}],
+                "remarkList": [
+                    {"id": "232", "userId": "1665609343213477908", "evaluationId": "89", "categoryId": "291",
+                     "questionId": "558", "remark": "9.9\n0", "createTime": 1695711722000,
+                     "updateTime": 1695711722000},
+                    {"id": "233", "userId": "1665609343213477908", "evaluationId": "89", "categoryId": "292",
+                     "questionId": "559", "remark": "6\n5", "createTime": 1695711722000, "updateTime": 1695711722000},
+                    {"id": "234", "userId": "1665609343213477908", "evaluationId": "89", "categoryId": "290",
+                     "questionId": "557", "remark": "9\n10", "createTime": 1695711722000,
+                     "updateTime": 1695711722000}], "summary": "全部写完了"}
         # print(data)
-        with self.client.post(self.host + 'gateway/yxz-service/evaluation/submit', headers=self.headers, json=data, verify=False) as response:
+        with self.client.post(self.host + 'gateway/yxz-service/evaluation/submit', headers=self.headers, json=data,
+                              verify=False) as response:
             # print(response.content.decode('utf-8'))  # 调试加入这一行
             try:
                 if response.status_code != 200:
-                    print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                             response.headers['eagleeye-traceid'],
+                                                                             self.session))
             except:
-                print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                         response.headers['eagleeye-traceid'],
+                                                                         self.session))
 
     @tag('查看报告')
     @task
     def report_test(self):
-        with self.client.get(self.host + f'gateway/yxz-service/evaluation/report?id={self.templateid}', headers=self.headers, verify=False) as response:
+        with self.client.get(self.host + f'gateway/yxz-service/evaluation/report?id={self.templateid}',
+                             headers=self.headers, verify=False) as response:
             # print(response.content.decode('utf-8'))  # 调试加入这一行
             try:
                 if response.status_code != 200:
-                    print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                             response.headers['eagleeye-traceid'],
+                                                                             self.session))
             except:
-                print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                         response.headers['eagleeye-traceid'],
+                                                                         self.session))
 
     @tag('查看评价方案')
     @task
     def chakan_test(self):
-        with self.client.get(self.host + f'gateway/yxz-service/evaluation/detail?id={self.templateid}', headers=self.headers, verify=False) as response:
+        with self.client.get(self.host + f'gateway/yxz-service/evaluation/detail?id={self.templateid}',
+                             headers=self.headers, verify=False) as response:
             # print(response.content.decode('utf-8'))  # 调试加入这一行
             try:
                 if response.status_code != 200:
-                    print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                             response.headers['eagleeye-traceid'],
+                                                                             self.session))
             except:
-                print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                         response.headers['eagleeye-traceid'],
+                                                                         self.session))
 
     @tag("退回报告")
     @task
     def start_test(self):
         data = {"id": f"{self.templateid}", "userId": f"{self.userid}", "rejectReason": "不合格"}
         # print(data)
-        with self.client.post(self.host + 'gateway/yxz-service/evaluation/reject', json=data, headers=self.headers, verify=False) as response:
+        with self.client.post(self.host + 'gateway/yxz-service/evaluation/reject', json=data, headers=self.headers,
+                              verify=False) as response:
             # print(response.content.decode('utf-8'))
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
 
 class Evaluation(TaskSet):
@@ -1623,34 +1721,52 @@ class Evaluation(TaskSet):
     @task
     def managementDetail_test(self):
         data = {"name": f"压测{self.session}", "hospital": "仁济医院", "department": "急诊科-1"}
-        with self.client.post(self.host + 'gateway/yxz-service/auth/updateMyInfo', json=data, headers=self.headers, verify=False) as response:
+        with self.client.post(self.host + 'gateway/yxz-service/auth/updateMyInfo', json=data, headers=self.headers,
+                              verify=False) as response:
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
     @tag('post新建药品01')
     @task
     def managementDetail_test(self):
         data = {"name": f"第一药{self.session}", "manufacturer": "第一医药", "category": "CNS药"}
-        with self.client.post(self.host + 'gateway/yxz-service/medicine/create', json=data, headers=self.headers, verify=False) as response:
+        with self.client.post(self.host + 'gateway/yxz-service/medicine/create', json=data, headers=self.headers,
+                              verify=False) as response:
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
     @tag('post新建药品02')
     @task
     def managementDetail_test(self):
         data = {"name": f"第二药{self.session}", "manufacturer": "第二医药", "category": "其他药"}
-        with self.client.post(self.host + 'gateway/yxz-service/medicine/create', json=data, headers=self.headers, verify=False) as response:
+        with self.client.post(self.host + 'gateway/yxz-service/medicine/create', json=data, headers=self.headers,
+                              verify=False) as response:
             try:
                 if response.status_code != 200:
-                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                      response.headers[
+                                                                                          'eagleeye-traceid'],
+                                                                                      self.session))
             except:
-                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},eagleeye-traceid:{},session:{}'.format(response.content,
+                                                                                  response.headers['eagleeye-traceid'],
+                                                                                  self.session))
 
     # @tag('新建模板方案')
     # @task
@@ -1667,48 +1783,58 @@ class Evaluation(TaskSet):
     @tag('2,模板详情')
     @task
     def participatingList_test(self):
-        with self.client.get(self.host + 'gateway/yxz-service/template/detail?id=1', headers=self.headers, verify=False) as response:
+        with self.client.get(self.host + 'gateway/yxz-service/template/detail?id=1', headers=self.headers,
+                             verify=False) as response:
             print(response.content)  # 调试加入这一行
             try:
                 if response.status_code != 200:
-                    print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                             response.headers['eagleeye-traceid'],
+                                                                             self.session))
             except:
-                print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                         response.headers['eagleeye-traceid'],
+                                                                         self.session))
 
     @tag('5,评分方案详情')
     @task
     def participatingList_test(self):
-        with self.client.get(self.host + 'gateway/yxz-service/template/detail?id=1', headers=self.headers, verify=False) as response:
+        with self.client.get(self.host + 'gateway/yxz-service/template/detail?id=1', headers=self.headers,
+                             verify=False) as response:
             # print(response.content)  # 调试加入这一行
             try:
                 if response.status_code != 200:
-                    print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                    print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                             response.headers['eagleeye-traceid'],
+                                                                             self.session))
             except:
-                print('response.content:{},traceid:{},session:{}'.format(response.content, response.headers['eagleeye-traceid'], self.session))
+                print('response.content:{},traceid:{},session:{}'.format(response.content,
+                                                                         response.headers['eagleeye-traceid'],
+                                                                         self.session))
 
 
 class websitUser(FastHttpUser):
     tasks = [YHomePage, Evaluation]
-    wait_time = between(1, 3)
+    wait_time = between(1, 2)
     bd = read_yxz()
     # print(bd)
     user_data_queue = queue.Queue()
-    for i in range(50):
+    for i in range(5):
+        userid = bd[i]['fields']['userid']
         session = bd[i]['fields']['session']
         # session = '93425eb0878e4fbbb4228a7ee761a832'  #观察员
         # session = 'e23dc24afce54cdba57438b9c6b3fd21'  #发起人
         medcineid = bd[i]['fields']['medcineid']
         templateid = bd[i]['fields']['templateid']
         phone = bd[i]['fields']['手机号']
-        userid = bd[i]['fields']['userid']
         user_data_queue.put_nowait([session, medcineid, templateid, phone, userid])
         # print(user_data_queue)
 
 
 if __name__ == '__main__':
-    # cmd = "locust -f yxz.py --host=https://test.viatris.cc --tags 1,获取当前登录用户信息 2,模板详情 3,我创建的评分方案列表 4,我参与的评分方案列表 5,评分方案详情"
+    cmd = "locust -f yxz.py --host=https://test.viatris.cc --tags 1,获取当前登录用户信息 2,模板详情 3,我创建的评分方案列表 4,我参与的评分方案列表 5,评分方案详情"
     # cmd = "locust -f yxz.py --host=https://test.viatris.cc --tags 提交评分方案"
-    cmd = "locust -f yxz.py --host=https://test.viatris.cc/ --tags 输入手机号码分享"
+    # cmd = "locust -f yxz.py --host=https://test.viatris.cc/ --tags 输入手机号码分享"
     os.system(cmd)
     # websitUser(FastHttpUser)
     # E = Evaluation(SequentialTaskSet)
